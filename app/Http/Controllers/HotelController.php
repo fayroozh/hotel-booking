@@ -22,7 +22,8 @@ class HotelController extends Controller
             'name' => 'required|string',
             'location' => 'required|string',
             'stars' => 'required|integer',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
         // لو المستخدم Admin
@@ -30,11 +31,17 @@ class HotelController extends Controller
             return response()->json(['message' => 'غير مسموح'], 403);
         }
 
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('hotels', 'public');
+        }
+
         $hotel = Hotel::create([
             'name' => $request->name,
             'location' => $request->location,
             'stars' => $request->stars,
             'description' => $request->description,
+            'image' => $imagePath,
             'status' => 'pending', // افتراضي
         ]);
 
@@ -61,7 +68,25 @@ class HotelController extends Controller
             return response()->json(['message' => 'غير مسموح'], 403);
         }
 
-        $hotel->update($request->only('name', 'location', 'stars', 'description', 'status'));
+        $request->validate([
+            'name' => 'sometimes|string',
+            'location' => 'sometimes|string',
+            'stars' => 'sometimes|integer',
+            'description' => 'sometimes|nullable|string',
+            'image' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
+
+        $data = $request->only('name', 'location', 'stars', 'description', 'status');
+
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($hotel->image) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($hotel->image);
+            }
+            $data['image'] = $request->file('image')->store('hotels', 'public');
+        }
+
+        $hotel->update($data);
         return response()->json($hotel);
     }
 

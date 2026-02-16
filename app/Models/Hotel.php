@@ -15,6 +15,7 @@ class Hotel extends Model
         'location',
         'stars',
         'description',
+        'image',
         'status',
         'manager_id',
     ];
